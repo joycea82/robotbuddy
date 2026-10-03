@@ -35,23 +35,28 @@ for course in courses:
 
     for assignment in assignments:
         submission =getattr(assignment, 'submission', {})
-    if isinstance(submission, dict):
+        if isinstance(submission, dict):
             workflow_state = submission.get('workflow_state', 'unsubmitted')
-    else:
+        else:
                 workflow_state = getattr(submission, 'workflow_state', 'unsubmitted')
     
-    if workflow_state == 'unsubmitted': or workflow_state is None:
-        has_unsubmitted_assignments = True
+        if workflow_state == 'unsubmitted' or workflow_state is None:
+            has_unsubmitted_assignments = True
 
-        payload = {
-            "course_name" : course.name,
-            "course_id" : course.id,
-            "assignment_name" : assignment.name,
-            "assignment_id" : assignment.id,
-            "due_date" : getattr(assignment, 'due_at', "None")
+            payload = {
+                "course_name" : course.name,
+                "course_id" : course.id,
+                "assignment_name" : assignment.name,
+                "assignment_id" : assignment.id,
+                "due_date" : getattr(assignment, 'due_at', "None")
         }
 
         unsubmitted_list.append(payload)
-        
+        print(f" Unsubmitted: {assignment.name} (Due:{payload['due_date']})")
+
+    if not has_unsubmitted_assignments:
+         print("None")
+
+print(f"\n--- Total Unsubmitted Collected: {len(unsubmitted_list)} ---")
 
 

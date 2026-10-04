@@ -8,26 +8,132 @@ const nextMonth = document.getElementById("nextMonth");
 
 
 // -------------------------
+// STORAGE HELPERS
+// -------------------------
+
+function loadData(key, fallback) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key));
+        return value === null ? fallback : value;
+    } catch (error) {
+        return fallback;
+    }
+}
+
+function saveData(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        console.error("Could not save:", error);
+    }
+
+    syncToFile();
+}
+
+function syncToFile() {
+
+    // Only assignments that haven't been deleted
+    const visibleAssignments = allAssignments.filter(function(assignment) {
+        return !hiddenAssignments.includes(assignment.assignment_id);
+    });
+
+    // Only tasks that aren't checked off
+    const pendingTasks = tasks.filter(function(task) {
+        return !task.done;
+    });
+
+    fetch("/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            assignments: visibleAssignments,
+            tasks: pendingTasks
+        })
+    }).catch(function(error) {
+        console.error("Could not write planner.txt:", error);
+    });
+
+}
+
+
+// -------------------------
+// DATA
+// -------------------------
+
+// Assignments from Canvas (passed in by Flask)
+const allAssignments = window.canvasAssignments || [];
+
+// Assignments the student deleted (saved by assignment_id)
+let hiddenAssignments = loadData("hiddenAssignments", []);
+
+// To-do tasks: { id, text, done }
+let tasks = loadData("tasks", []);
+
+
+// -------------------------
 // TO-DO LIST
 // -------------------------
 
+function createTodoList() {
+
+    todoList.innerHTML = "";
+
+    tasks.forEach(function(task) {
+
+        const todo = document.createElement("div");
+        todo.classList.add("todo");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = task.done;
+
+        checkbox.addEventListener("change", function() {
+            task.done = checkbox.checked;
+            saveData("tasks", tasks);
+        });
+
+        const text = document.createElement("span");
+        text.textContent = task.text;
+
+        const deleteButton = document.createElement("button");
+        deleteButton.classList.add("delete-button");
+        deleteButton.textContent = "×";
+        deleteButton.title = "Delete task";
+
+        deleteButton.addEventListener("click", function() {
+            tasks = tasks.filter(function(t) {
+                return t.id !== task.id;
+            });
+            saveData("tasks", tasks);
+            createTodoList();
+        });
+
+        todo.appendChild(checkbox);
+        todo.appendChild(text);
+        todo.appendChild(deleteButton);
+
+        todoList.appendChild(todo);
+
+    });
+
+}
+
 addTaskButton.addEventListener("click", function() {
 
-    const task = prompt("What do you need to do?");
+    const taskText = prompt("What do you need to do?");
 
-    if (task === null || task.trim() === "") {
+    if (taskText === null || taskText.trim() === "") {
         return;
     }
 
-    const todo = document.createElement("div");
-    todo.classList.add("todo");
+    tasks.push({
+        id: Date.now(),
+        text: taskText.trim(),
+        done: false
+    });
 
-    todo.innerHTML = `
-        <input type="checkbox">
-        <span>${task}</span>
-    `;
-
-    todoList.appendChild(todo);
+    saveData("tasks", tasks);
+    createTodoList();
 
 });
 
@@ -44,85 +150,84 @@ let currentYear = currentDate.getFullYear();
 
 function createCalendar() {
 
-    // Remove the old calendar
     calendar.innerHTML = "";
 
-    // Month names
     const months = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December"
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
     ];
 
-    // Display the month and year
     monthName.textContent = `${months[currentMonth]} ${currentYear}`;
 
-
-    // Add the days of the week
-    const daysOfWeek = [
-        "Sun",
-        "Mon",
-        "Tue",
-        "Wed",
-        "Thu",
-        "Fri",
-        "Sat"
-    ];
+    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
     daysOfWeek.forEach(function(day) {
-
         const dayName = document.createElement("div");
-
         dayName.classList.add("day-name");
-
         dayName.textContent = day;
-
         calendar.appendChild(dayName);
-
     });
 
-
-    // Find what day of the week the month starts on
     const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const numberOfDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-    // Find how many days are in this month
-    const numberOfDays = new Date(
-        currentYear,
-        currentMonth + 1,
-        0
-    ).getDate();
+    // Only show assignments that haven't been deleted
+    const visibleAssignments = allAssignments.filter(function(assignment) {
+        return !hiddenAssignments.includes(assignment.assignment_id);
+    });
 
-
-    // Add empty spaces before the first day
+    // Empty spaces before the first day
     for (let i = 0; i < firstDay; i++) {
-
         const emptyDay = document.createElement("div");
-
         emptyDay.classList.add("day");
         emptyDay.classList.add("other-month");
-
         calendar.appendChild(emptyDay);
-
     }
 
-
-    // Add all the days
+    // All the days
     for (let day = 1; day <= numberOfDays; day++) {
 
         const dayElement = document.createElement("div");
-
         dayElement.classList.add("day");
 
-        dayElement.textContent = day;
+        const dayNumber = document.createElement("div");
+        dayNumber.textContent = day;
+        dayElement.appendChild(dayNumber);
+
+        const dateString =
+            `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+        const dayAssignments = visibleAssignments.filter(function(assignment) {
+            return assignment.due_date === dateString;
+        });
+
+        dayAssignments.forEach(function(assignment) {
+
+            const assignmentElement = document.createElement("div");
+            assignmentElement.classList.add("assignment");
+            assignmentElement.title =
+                `${assignment.course_name}: ${assignment.assignment_name} (due ${assignment.due_time})`;
+
+            const label = document.createElement("span");
+            label.textContent = assignment.assignment_name;
+
+            const deleteButton = document.createElement("button");
+            deleteButton.classList.add("delete-button");
+            deleteButton.textContent = "×";
+            deleteButton.title = "Remove from calendar";
+
+            deleteButton.addEventListener("click", function(event) {
+                event.stopPropagation();
+                hiddenAssignments.push(assignment.assignment_id);
+                saveData("hiddenAssignments", hiddenAssignments);
+                createCalendar();
+            });
+
+            assignmentElement.appendChild(label);
+            assignmentElement.appendChild(deleteButton);
+            dayElement.appendChild(assignmentElement);
+
+        });
 
         calendar.appendChild(dayElement);
 
@@ -132,44 +237,29 @@ function createCalendar() {
 
 
 // -------------------------
-// PREVIOUS MONTH
+// PREVIOUS / NEXT MONTH
 // -------------------------
 
 previousMonth.addEventListener("click", function() {
-
     currentMonth--;
-
     if (currentMonth < 0) {
-
         currentMonth = 11;
         currentYear--;
-
     }
-
     createCalendar();
-
 });
-
-
-// -------------------------
-// NEXT MONTH
-// -------------------------
 
 nextMonth.addEventListener("click", function() {
-
     currentMonth++;
-
     if (currentMonth > 11) {
-
         currentMonth = 0;
         currentYear++;
-
     }
-
     createCalendar();
-
 });
 
 
-// Create calendar when page loads
+// Build everything when the page loads
+createTodoList();
 createCalendar();
+syncToFile();

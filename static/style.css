@@ -1,0 +1,151 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "VT323", monospace;
+    background: #f5f3f8;
+    color: #292733;
+}
+
+.app {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 25px;
+}
+
+header {
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 36px;
+    margin-bottom: 8px;
+}
+
+header p {
+    color: #777;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 25px;
+}
+
+section {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* TO DO LIST */
+
+.section-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-title h2 {
+    font-size: 26px;
+}
+
+#addTaskButton {
+    border: none;
+    background: #292733;
+    color: white;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.todo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.todo input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.todo span {
+    font-size: 18px;
+}
+
+.todo input:checked + span {
+    text-decoration: line-through;
+    color: #999;
+}
+
+
+/* CALENDAR */
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.calendar-header button {
+    border: none;
+    background: #f0eef5;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.calendar-header button:hover {
+    background: #e4e1ec;
+}
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.day-name {
+    text-align: center;
+    font-weight: bold;
+    color: #888;
+    padding: 10px 0;
+}
+
+.day {
+    min-height: 70px;
+    padding: 10px;
+    border-radius: 10px;
+    background: #faf9fc;
+    cursor: pointer;
+}
+
+.day:hover {
+    background: #eeeaf5;
+}
+
+.other-month {
+    color: #bbb;
+}
+
+@media (max-width: 800px) {
+
+    main {
+        grid-template-columns: 1fr;
+    }
+
+}

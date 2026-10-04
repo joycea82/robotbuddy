@@ -32,9 +32,23 @@ function saveData(key, value) {
 
 function syncToFile() {
 
-    // Only assignments that haven't been deleted
-    const visibleAssignments = allAssignments.filter(function(assignment) {
-        return !hiddenAssignments.includes(assignment.assignment_id);
+    // Start of today, and the end of the 7-day window
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const weekFromToday = new Date(today);
+    weekFromToday.setDate(weekFromToday.getDate() + 7);
+
+    // Only assignments that haven't been deleted AND are due within the next week
+    const upcomingAssignments = allAssignments.filter(function(assignment) {
+
+        if (hiddenAssignments.includes(assignment.assignment_id)) {
+            return false;
+        }
+
+        const dueDate = new Date(assignment.due_date + "T00:00:00");
+
+        return dueDate >= today && dueDate <= weekFromToday;
     });
 
     // Only tasks that aren't checked off
@@ -46,7 +60,7 @@ function syncToFile() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            assignments: visibleAssignments,
+            assignments: upcomingAssignments,
             tasks: pendingTasks
         })
     }).catch(function(error) {
@@ -61,7 +75,13 @@ function syncToFile() {
 // -------------------------
 
 // Assignments from Canvas (passed in by Flask)
-const allAssignments = window.canvasAssignments || [];
+let allAssignments = [];
+
+try {
+    allAssignments = JSON.parse(document.body.dataset.assignments || "[]");
+} catch (error) {
+    console.error("Could not read assignments:", error);
+}
 
 // Assignments the student deleted (saved by assignment_id)
 let hiddenAssignments = loadData("hiddenAssignments", []);
@@ -194,7 +214,7 @@ function createCalendar() {
 
         dayElement.textContent = day;
 
-        assignments.forEach(function(assignment) {
+        visibleAssignments.forEach(function(assignment) {
 
         const dueDate = new Date(
             assignment.due_date + "T00:00:00"

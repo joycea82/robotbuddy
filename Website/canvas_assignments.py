@@ -6,6 +6,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def short_course_name(name):
+    # "MSE103 D100 Statics and Dynamics" -> "MSE103"
+    parts = name.split()
+    return parts[0] if parts else name
+
 def get_assignments():
 
     TOKEN = os.environ.get('CANVAS_API_TOKEN')
@@ -68,7 +73,7 @@ def get_assignments():
 
                 # Store assignment information
                 payload = {
-                    "course_name": course.name,
+                    "course_name": short_course_name(course.name),
                     "course_id": course.id,
                     "assignment_name": assignment.name,
                     "assignment_id": assignment.id,

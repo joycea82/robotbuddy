@@ -14,7 +14,7 @@ body {
 }
 
 .app {
-    max-width: 1200px;
+    max-width: 1300px;
     margin: 40px auto;
     padding: 0 25px;
 }
@@ -34,8 +34,8 @@ header p {
 
 main {
     display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 25px;
+    grid-template-columns: 240px 1fr;
+    gap: 20px;
 }
 
 section {
@@ -92,6 +92,10 @@ section {
     color: #999;
 }
 
+.todo-section {
+    padding: 18px;
+}
+
 
 /* CALENDAR */
 
@@ -131,7 +135,7 @@ section {
 
 .day {
     min-height: 70px;
-    padding: 10px;
+    padding: 6px;
     border-radius: 10px;
     background: #faf9fc;
     cursor: pointer;
@@ -143,6 +147,18 @@ section {
 
 .other-month {
     color: #bbb;
+}
+
+.assignment {
+    margin-top: 4px;
+    padding: 2px 5px;
+    font-size: 14px;
+    line-height: 1.1;
+    color: #1d3a6b;
+    background: #e8f1ff;
+    border: 2px solid #4a8fe7;
+    border-radius: 8px;
+    word-break: break-word;
 }
 
 @media (max-width: 800px) {

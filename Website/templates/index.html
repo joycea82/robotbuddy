@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
-<body>
+<body data-assignments='{{ assignments | tojson }}'>
 
     <div class="app">
 
@@ -79,10 +79,6 @@
         </main>
 
     </div>
-
-    <script>
-        const assignments = {{ assignments | tojson }};
-    </script>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 

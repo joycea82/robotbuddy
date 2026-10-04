@@ -19,10 +19,14 @@ const int buzzer   = 9;
 const int MPU_ADDR = 0x68;
 
 // ---------- Settings ----------
-const float ROLL_NEUTRAL   = -177.0;   // roll reading at rest
-const float ROLL_THRESHOLD = 22.0;     // degrees from neutral = door open
-const float HYSTERESIS     = 3.0;
-const unsigned long PAGE_MS = 3000;    // how long each screen shows
+const float ANGLE_THRESHOLD = 30.0;    // degrees the door must swing from closed
+const float HYSTERESIS      = 3.0;
+const unsigned long PAGE_MS  = 3000;   // how long each screen shows
+const unsigned long PRINT_MS = 250;    // how often to print live readings
+
+const float GYRO_SCALE = 65.5;         // LSB per deg/s at the +/-500 deg/s range
+const float REST_RATE  = 2.0;          // deg/s: below this the door counts as not moving
+const float REST_ZONE  = 10.0;         // deg: only re-zero the angle when this close to closed
 
 const int TASK_TEXT_X = 16, TASK_FIRST_Y = 12, TASK_LINE_H = 14, TASK_GAP = 4, TASK_MAX_BASELINE = 60;
 
@@ -35,7 +39,12 @@ int dueToday = 0, weather = -1;              // weather: -1 unknown, 0 sun, 1 cl
 bool haveData = false, haveTime = false, infoChanged = false;
 bool tilted = false, wasTilted = false, soundPlayed = false;
 unsigned long tiltStart = 0;
+unsigned long lastPrint = 0;
 int lastPage = -2;                           // -2 nothing drawn, -1 resting screen, 0+ info screens
+
+float gxBias = 0;                            // gyro X resting offset, deg/s
+float angX = 0;                              // integrated door angle, deg (0 = closed)
+unsigned long lastMicros = 0;
 
 // ---------- Sound (non-blocking) ----------
 struct Note { uint16_t freq, ms; };          // freq 0 = rest
@@ -215,14 +224,12 @@ void drawPage(int p) {
 }
 
 // ---------- Input ----------
-bool readAccel(int16_t &ay, int16_t &az) {
+bool readGyroX(int16_t &gx) {                      // GYRO_XOUT_H / L registers
   Wire.beginTransmission(MPU_ADDR);
-  Wire.write(0x3B);
+  Wire.write(0x43);
   if (Wire.endTransmission(false) != 0) return false;
-  if (Wire.requestFrom(MPU_ADDR, 6) != 6) return false;
-  Wire.read(); Wire.read();                        // skip X
-  ay = (Wire.read() << 8) | Wire.read();
-  az = (Wire.read() << 8) | Wire.read();
+  if (Wire.requestFrom(MPU_ADDR, 2) != 2) return false;
+  gx = (Wire.read() << 8) | Wire.read();
   return true;
 }
 
@@ -289,36 +296,76 @@ void setup() {
     while (true);
   }
 
+  Wire.beginTransmission(MPU_ADDR);
+  Wire.write(0x1B);                                // gyro range: +/-500 deg/s
+  Wire.write(0x08);
+  Wire.endTransmission();
+  delay(100);
+
+  // Calibrate the gyro with the door closed and still (about 1 second)
+  Serial.println("Calibrating gyro, keep the door closed and still...");
+  float sum = 0;
+  int good = 0;
+  for (int i = 0; i < 200; i++) {
+    int16_t gx;
+    if (readGyroX(gx)) { sum += gx / GYRO_SCALE; good++; }
+    delay(5);
+  }
+  if (good) gxBias = sum / good;
+
+  Serial.println("=== STARTUP READING ===");
+  Serial.print("  gyro X bias: "); Serial.print(gxBias, 2);
+  Serial.println(" deg/s");
+  Serial.println("=======================");
+
   display.clearDisplay();
   display.display();
+  lastMicros = micros();
 }
 
 void loop() {
   readSerial();
   updateSound();
 
-  int16_t ay, az;
-  if (!readAccel(ay, az)) {
-    Serial.println("Accelerometer read error");
+  int16_t gx;
+  if (!readGyroX(gx)) {
+    Serial.println("Gyro read error");
     delay(100);
     return;
   }
 
-  // Roll relative to neutral, wrapped to -180..180
-  float roll = atan2((float)ay, (float)az) * 180.0 / PI;
-  float diff = roll - ROLL_NEUTRAL;
-  if (diff > 180.0)  diff -= 360.0;
-  if (diff < -180.0) diff += 360.0;
+  // Integrate the gyro X rate into a door angle (0 = closed)
+  unsigned long now = micros();
+  float dt = (now - lastMicros) / 1000000.0;
+  lastMicros = now;
 
-  if (!tilted && fabs(diff) > ROLL_THRESHOLD) tilted = true;
-  else if (tilted && fabs(diff) < ROLL_THRESHOLD - HYSTERESIS) tilted = false;
+  float rate = gx / GYRO_SCALE - gxBias;
+  angX += rate * dt;
+
+  // Fight drift: when the door is closed and not moving, re-zero and fine-tune the bias
+  if (!tilted && fabs(rate) < REST_RATE && fabs(angX) < REST_ZONE) {
+    gxBias += 0.01 * rate;
+    angX = 0;
+  }
+
+  if (!tilted && fabs(angX) > ANGLE_THRESHOLD) tilted = true;
+  else if (tilted && fabs(angX) < ANGLE_THRESHOLD - HYSTERESIS) tilted = false;
 
   if (tilted != wasTilted) {                       // door opened or closed
     if (tilted) { tiltStart = millis(); soundPlayed = false; }
     else stopSound();
-    Serial.print("Roll: "); Serial.print(roll, 1);
-    Serial.println(tilted ? "  -> TILTED" : "  -> NEUTRAL");
+    Serial.print("Angle: "); Serial.print(angX, 1);
+    Serial.println(tilted ? "  -> OPEN" : "  -> CLOSED");
     wasTilted = tilted;
+  }
+
+  // Live readout (throttled)
+  if (millis() - lastPrint >= PRINT_MS) {
+    lastPrint = millis();
+    Serial.print("rate: ");        Serial.print(rate, 1);
+    Serial.print("  angle: ");     Serial.print(angX, 1);
+    Serial.print("  bias: ");      Serial.print(gxBias, 2);
+    Serial.println(tilted ? "  [OPEN]" : "  [closed]");
   }
 
   // Alarm if assignments are due, otherwise a happy tune (once per door opening)

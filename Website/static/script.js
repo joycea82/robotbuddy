@@ -191,41 +191,32 @@ function createCalendar() {
         dayElement.classList.add("day");
 
         const dayNumber = document.createElement("div");
-        dayNumber.textContent = day;
-        dayElement.appendChild(dayNumber);
 
-        const dateString =
-            `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        dayElement.textContent = day;
 
-        const dayAssignments = visibleAssignments.filter(function(assignment) {
-            return assignment.due_date === dateString;
-        });
+        assignments.forEach(function(assignment) {
 
-        dayAssignments.forEach(function(assignment) {
+        const dueDate = new Date(
+            assignment.due_date + "T00:00:00"
+        );
+
+        if (
+            dueDate.getDate() === day &&
+            dueDate.getMonth() === currentMonth &&
+            dueDate.getFullYear() === currentYear
+        ) {
 
             const assignmentElement = document.createElement("div");
+
             assignmentElement.classList.add("assignment");
-            assignmentElement.title =
-                `${assignment.course_name}: ${assignment.assignment_name} (due ${assignment.due_time})`;
 
-            const label = document.createElement("span");
-            label.textContent = assignment.assignment_name;
+            assignmentElement.textContent =
+                assignment.course_name + ": " +
+                assignment.assignment_name;
 
-            const deleteButton = document.createElement("button");
-            deleteButton.classList.add("delete-button");
-            deleteButton.textContent = "×";
-            deleteButton.title = "Remove from calendar";
-
-            deleteButton.addEventListener("click", function(event) {
-                event.stopPropagation();
-                hiddenAssignments.push(assignment.assignment_id);
-                saveData("hiddenAssignments", hiddenAssignments);
-                createCalendar();
-            });
-
-            assignmentElement.appendChild(label);
-            assignmentElement.appendChild(deleteButton);
             dayElement.appendChild(assignmentElement);
+
+        }
 
         });
 

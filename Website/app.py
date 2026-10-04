@@ -5,7 +5,6 @@ app = Flask(__name__)
 
 PORT = 3000
 
-
 @app.route("/")
 def home():
     assignments = get_assignments()

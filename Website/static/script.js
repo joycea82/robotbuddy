@@ -122,7 +122,35 @@ function createCalendar() {
 
         dayElement.classList.add("day");
 
+        const dayNumber = document.createElement("div");
+
         dayElement.textContent = day;
+
+        assignments.forEach(function(assignment) {
+
+        const dueDate = new Date(
+            assignment.due_date + "T00:00:00"
+        );
+
+        if (
+            dueDate.getDate() === day &&
+            dueDate.getMonth() === currentMonth &&
+            dueDate.getFullYear() === currentYear
+        ) {
+
+            const assignmentElement = document.createElement("div");
+
+            assignmentElement.classList.add("assignment");
+
+            assignmentElement.textContent =
+                assignment.course_name + ": " +
+                assignment.assignment_name;
+
+            dayElement.appendChild(assignmentElement);
+
+        }
+
+        });
 
         calendar.appendChild(dayElement);
 

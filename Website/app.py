@@ -1,6 +1,7 @@
 import os
 from flask import Flask, render_template, request, jsonify
 from canvas_assignments import get_assignments
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -12,6 +13,9 @@ def clean(text):
     # Keep each entry on a single line
     return " ".join(str(text).split())
 
+def pretty_date(iso):
+    d = datetime.strptime(iso[:10], "%Y-%m-%d")
+    return f"{d:%b} {d.day}"
 
 @app.route("/")
 def home():
@@ -35,7 +39,7 @@ def save():
     # Class: Assignment name; Due Date (soonest first)
     for a in sorted(assignments, key=lambda a: a["due_date"]):
         lines.append(
-            f'{clean(a["course_name"])}: {clean(a["assignment_name"])}; {a["due_date"]}'
+            f'{clean(a["course_name"])}: {clean(a["assignment_name"])}; {pretty_date(a["due_date"])}'
         )
 
     # *Task name

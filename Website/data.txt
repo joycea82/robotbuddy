@@ -1,8 +1,7 @@
-MSE103: Assignment 03; 2026-10-04
-MATH260: Assignment 4 (WP); 2026-10-07
-MSE220: Assignment #1; 2026-10-09
-MSE103: Assignment 04; 2026-10-11
-MSE220: Lab Report #2; 2026-10-11
-*Help me
-*Please
-*Take out the garbage
+MSE103: Assignment 03; Oct 4
+MATH260: Assignment 4 (WP); Oct 7
+MSE220: Assignment #1; Oct 9
+MSE103: Assignment 04; Oct 11
+MSE220: Lab Report #2; Oct 11
+*New task
+*make finger

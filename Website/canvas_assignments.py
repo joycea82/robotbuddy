@@ -2,6 +2,9 @@ import os
 import canvasapi
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def get_assignments():
 
@@ -76,3 +79,8 @@ def get_assignments():
                 unsubmitted_list.append(payload)
 
     return unsubmitted_list
+
+assignments = get_assignments()
+
+for assignment in assignments:
+    print(assignment)
